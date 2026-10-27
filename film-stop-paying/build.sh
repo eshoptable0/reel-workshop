@@ -2,7 +2,7 @@
 # language: sh, target: lemo-opuscar engine — custom film "STOP PAYING" (swiss-motion style)
 # venv-tolerant: .venv/bin/python OR system python3
 set -e
-cd "$(dirname "$0")/../../.."
+cd "$(dirname "$0")/../.."
 if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python3; fi
 echo "using PY=$PY"
 $PY -c "import numpy, scipy, soundfile, soxr" 2>/dev/null || $PY -m pip install --quiet numpy scipy soundfile soxr pillow || $PY -m pip install --break-system-packages --quiet numpy scipy soundfile soxr pillow || echo "pip install failed, continuing"
