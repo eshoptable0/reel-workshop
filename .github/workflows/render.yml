@@ -1,0 +1,56 @@
+name: render-reel
+# language: yaml (GitHub Actions), target: ubuntu-latest runner
+# clones lemo-opuscar + renders one style demo -> uploads MP4 as release asset
+on:
+  workflow_dispatch:
+    inputs:
+      style:
+        description: 'lemo-opuscar style id (leave empty = list available)'
+        required: false
+        default: ''
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout workspace repo
+        uses: actions/checkout@v4
+
+      - name: System deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-liberation nodejs npm
+
+      - name: Clone lemo-opuscar
+        run: git clone --depth 1 https://github.com/lemomo-ai/lemo-opuscar.git
+
+      - name: List styles
+        if: ${{ github.event.inputs.style == '' }}
+        run: |
+          cd lemo-opuscar
+          ls core/render 2>/dev/null || ls core
+          cat core/README.md 2>/dev/null | head -80 || true
+
+      - name: Render demo
+        if: ${{ github.event.inputs.style != '' }}
+        env:
+          STYLE_ID: ${{ github.event.inputs.style }}
+        run: |
+          cd lemo-opuscar
+          node --version
+          npm install --no-audit --no-fund 2>&1 | tail -2
+          # find render entrypoint
+          ls core/render
+          echo "STYLE=$STYLE_ID"
+          # will wire actual render command after inspecting layout
+          node core/render/render.js --style="$STYLE_ID" --out=/tmp/out.mp4 2>&1 | tail -20 || echo "need correct entrypoint"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-mp4
+          path: |
+            /tmp/out.mp4
+            lemo-opuscar/**/*.mp4
+          if-no-files-found: ignore
