@@ -27,12 +27,11 @@ jobs:
           curl -sL -o films/stop-paying/fonts/Archivo-VF.ttf "https://github.com/google/fonts/raw/main/ofl/archivo/Archivo%5Bwdth%2Cwght%5D.ttf"
           ls films/stop-paying/ films/stop-paying/fonts/
 
-      - name: Setup core deps + voice tier (with fallback)
+      - name: Setup core deps + voice tier
         run: |
           cd lemo-opuscar
-          sh plugin/skills/lemo-opuscar/scripts/setup.sh deps 2>&1 | tail -4 || echo "setup deps failed, fallback next"
-          [ -f .venv/bin/python ] || { python3 -m venv .venv && .venv/bin/pip install -q numpy scipy soundfile soxr pillow; }
-          sh plugin/skills/lemo-opuscar/scripts/setup.sh deps voice 2>&1 | tail -4 || echo "voice tier failed, continuing (TTS may fail)"
+          sh plugin/skills/lemo-opuscar/scripts/setup.sh deps 2>&1 | tail -3
+          sh plugin/skills/lemo-opuscar/scripts/setup.sh deps voice 2>&1 | tail -3
           ls .venv/bin | head -5; df -h / | tail -1
 
       - name: Build (full pipeline)
