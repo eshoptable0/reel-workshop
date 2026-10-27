@@ -27,6 +27,7 @@ const TOTAL = TOOLS.reduce((s, x) => s + x[2], 0);
 
 let WORDS = {}, LINES = [];
 export function setWords(w) { WORDS = w || {}; }
+export function setScore(s) { /* score stub — silent film */ }
 export function setLines(lines, dur) { LINES = lines.map(L => ({ ...L, dur: dur[L.id] })); }
 export function buildEvents() {
   const ev = [];
