@@ -1,0 +1,64 @@
+name: render-blueprint-v2
+# language: yaml, target: ubuntu-latest
+# fix v1: fonts missing (demo/fonts only has OFL + css, ttf files come from google fonts fetch)
+# strategy: download the 5 google fonts directly into demo/fonts/, then render
+on:
+  workflow_dispatch:
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: System deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-liberation python3-venv python3-pip chromium-browser
+          node --version; ffmpeg -version | head -1
+
+      - name: Clone lemo-opuscar
+        run: git clone --depth 1 https://github.com/lemomo-ai/lemo-opuscar.git
+
+      - name: Fetch demo fonts (Google Fonts direct)
+        run: |
+          cd lemo-opuscar/styles/blueprint/demo/fonts
+          # Architects Daughter, B612, B612 Mono, Allura — from google/fonts github raw
+          curl -sL -o ArchitectsDaughter-Regular.ttf "https://github.com/google/fonts/raw/main/ofl/architectsdaughter/ArchitectsDaughter-Regular.ttf"
+          curl -sL -o B612-Regular.ttf "https://github.com/google/fonts/raw/main/ofl/b612/B612-Regular.ttf"
+          curl -sL -o B612-Bold.ttf "https://github.com/google/fonts/raw/main/ofl/b612/B612-Bold.ttf"
+          curl -sL -o B612Mono-Regular.ttf "https://github.com/google/fonts/raw/main/ofl/b612mono/B612Mono-Regular.ttf"
+          curl -sL -o Allura-Regular.ttf "https://github.com/google/fonts/raw/main/ofl/allura/Allura-Regular.ttf"
+          ls -la *.ttf
+
+      - name: Setup lemo core deps
+        run: |
+          cd lemo-opuscar
+          sh plugin/skills/lemo-opuscar/scripts/setup.sh deps 2>&1 | tail -5 || {
+            echo "--- fallback manual ---"
+            npm install --no-audit --no-fund 2>&1 | tail -2
+            python3 -m venv .venv
+            .venv/bin/pip install -q numpy scipy soundfile soxr pillow 2>&1 | tail -2
+          }
+
+      - name: Render blueprint video
+        run: |
+          cd lemo-opuscar
+          D=styles/blueprint/demo
+          node core/render/video.mjs $D --fps 24 --workers 2 --out $D/out/video24.mp4 2>&1 | tail -25
+
+      - name: Mux silent
+        run: |
+          cd lemo-opuscar
+          D=styles/blueprint/demo
+          ls -la $D/out/
+          ffmpeg -y -i $D/out/video24.mp4 -c:v copy -an blueprint_silent.mp4 2>&1 | tail -3
+          ls -la blueprint_silent.mp4
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: blueprint-demo-v2
+          path: lemo-opuscar/blueprint_silent.mp4
+          if-no-files-found: error
