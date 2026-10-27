@@ -1,0 +1,82 @@
+[
+ {
+  "id": "l1",
+  "t": 3.2,
+  "text": "You pay 28,000 rupees a month for software.",
+  "asr": "You pay 28,000 rupees a month for software.",
+  "voice": "af_sarah",
+  "speed": 1.0
+ },
+ {
+  "id": "l2",
+  "t": 7.6,
+  "text": "You don't have to.",
+  "asr": "You don't have to.",
+  "voice": "af_sarah",
+  "speed": 1.0
+ },
+ {
+  "id": "l3",
+  "t": 11.52,
+  "text": "Immich. Your photos. Your server. Zero.",
+  "asr": "Imach. Your photos. Your server. Zero.",
+  "voice": "af_sarah",
+  "speed": 1.0
+ },
+ {
+  "id": "l4",
+  "t": 16.560000000000002,
+  "text": "AppFlowy. A Notion that You own.",
+  "asr": "App Flowy. A Notion that you own.",
+  "voice": "af_sarah",
+  "speed": 1.0
+ },
+ {
+  "id": "l5",
+  "t": 21.18,
+  "text": "Cal.com. Booking, without the subscription.",
+  "asr": "Cal dot com. Booking, without the subscription.",
+  "voice": "af_sarah",
+  "speed": 1.0
+ },
+ {
+  "id": "l6",
+  "t": 25.8,
+  "text": "Cap. Screen recording, no watermark.",
+  "asr": "Cap. Screen recording, no watermark.",
+  "voice": "af_sarah",
+  "speed": 1.0
+ },
+ {
+  "id": "l7",
+  "t": 30.419999999999998,
+  "text": "OpenWhispr. Talk. It types. Free.",
+  "asr": "Open Whispr. Talk. It types. Free.",
+  "voice": "af_sarah",
+  "speed": 1.0
+ },
+ {
+  "id": "l8",
+  "t": 18.6,
+  "text": "Ten repos. Twenty-eight thousand saved.",
+  "asr": "Ten repos. Twenty eight thousand saved.",
+  "voice": "af_sarah",
+  "speed": 1.0
+ },
+ {
+  "id": "l9",
+  "t": 22.6,
+  "text": "Every month. Forever.",
+  "asr": "Every month. Forever.",
+  "voice": "af_sarah",
+  "speed": 1.0
+ },
+ {
+  "id": "l10",
+  "t": 26.1,
+  "text": "Comment REPOS for the full list.",
+  "asr": "Comment repos for the full list.",
+  "voice": "af_sarah",
+  "speed": 1.0
+ }
+]
