@@ -1,0 +1,53 @@
+name: render-stop-paying
+# language: yaml, target: ubuntu-latest — custom film "stop paying", lemo engine, full audio
+on:
+  workflow_dispatch:
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: System deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-liberation python3-venv python3-pip chromium-browser
+          node --version
+
+      - name: Clone lemo-opuscar
+        run: git clone --depth 1 https://github.com/lemomo-ai/lemo-opuscar.git
+
+      - name: Move film into lemo tree + fetch Archivo font
+        run: |
+          cd lemo-opuscar
+          mkdir -p films/stop-paying/fonts
+          cp -r film-stop-paying/* films/stop-paying/
+          curl -sL -o films/stop-paying/fonts/Archivo-VF.ttf "https://github.com/google/fonts/raw/main/ofl/archivo/Archivo%5Bwdth%2Cwght%5D.ttf"
+          ls films/stop-paying/ films/stop-paying/fonts/
+
+      - name: Setup core deps + voice tier
+        run: |
+          cd lemo-opuscar
+          sh plugin/skills/lemo-opuscar/scripts/setup.sh deps 2>&1 | tail -3
+          sh plugin/skills/lemo-opuscar/scripts/setup.sh deps voice 2>&1 | tail -3
+          ls .venv/bin | head -5; df -h / | tail -1
+
+      - name: Build (full pipeline)
+        run: |
+          cd lemo-opuscar
+          sh films/stop-paying/build.sh 2>&1 | tail -50
+
+      - name: Verify output
+        run: |
+          cd lemo-opuscar
+          ls -la films/stop-paying/stop-paying.mp4
+          ffprobe -v error -show_entries format=duration -show_entries stream=codec_type -of compact films/stop-paying/stop-paying.mp4
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: stop-paying-final
+          path: lemo-opuscar/films/stop-paying/stop-paying.mp4
+          if-no-files-found: error
