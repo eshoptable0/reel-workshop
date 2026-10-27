@@ -23,7 +23,7 @@ jobs:
         run: |
           cd lemo-opuscar
           mkdir -p films/stop-paying/fonts
-          cp -r film-stop-paying/* films/stop-paying/
+          cp -r "$GITHUB_WORKSPACE/film-stop-paying/"* films/stop-paying/
           curl -sL -o films/stop-paying/fonts/Archivo-VF.ttf "https://github.com/google/fonts/raw/main/ofl/archivo/Archivo%5Bwdth%2Cwght%5D.ttf"
           ls films/stop-paying/ films/stop-paying/fonts/
 
