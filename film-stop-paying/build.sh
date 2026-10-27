@@ -15,4 +15,9 @@ node core/render/events.mjs $D
 $PY $D/mix.py
 $PY $D/tools/subs.py && $PY core/render/srt.py $D/out/subs.json $D/stop-paying.srt
 node core/render/video.mjs $D --fps 60 --workers 3 --out $D/out/video60.mp4
-sh core/render/mux.sh $D/out/video60.mp4 $D/mix.wav $D/stop-paying.mp4 60 0
+if [ -f $D/mix.wav ]; then
+  sh core/render/mux.sh $D/out/video60.mp4 $D/mix.wav $D/stop-paying.mp4 60 0
+else
+  echo "no mix.wav — silent passthrough"
+  ffmpeg -y -i $D/out/video60.mp4 -c:v copy -an $D/stop-paying.mp4
+fi
