@@ -1,0 +1,13 @@
+[
+  {"id": "l1", "t": 1.0, "text": "Everyone is building an AI agent. Almost none of them work.", "asr": "Everyone is building an AI agent. Almost none of them work.", "voice": "af_sarah", "speed": 1.0},
+  {"id": "l2", "t": 5.8, "text": "Not because the model is dumb. Because the demo was a lie.", "asr": "Not because the model is dumb. Because the demo was a lie.", "voice": "af_sarah", "speed": 1.0},
+  {"id": "l3", "t": 10.2, "text": "Claim one. It can do your whole job autonomously.", "asr": "Claim one. It can do your whole job autonomously.", "voice": "af_sarah", "speed": 1.0},
+  {"id": "l4", "t": 15.0, "text": "Reality. It forgets step two and confidently invents step nine.", "asr": "Reality. It forgets step two and confidently invents step nine.", "voice": "af_sarah", "speed": 1.0},
+  {"id": "l5", "t": 20.4, "text": "Claim two. It runs your business while you sleep.", "asr": "Claim two. It runs your business while you sleep.", "voice": "af_sarah", "speed": 1.0},
+  {"id": "l6", "t": 25.4, "text": "Reality. It loops for six hours and burns forty dollars.", "asr": "Reality. It loops for six hours and burns forty dollars.", "voice": "af_sarah", "speed": 1.0},
+  {"id": "l7", "t": 30.6, "text": "Claim three. Agents will replace your whole team.", "asr": "Claim three. Agents will replace your whole team.", "voice": "af_sarah", "speed": 1.0},
+  {"id": "l8", "t": 35.2, "text": "Reality. Three years later, you still need a human to hit send.", "asr": "Reality. Three years later, you still need a human to hit send.", "voice": "af_sarah", "speed": 1.0},
+  {"id": "l9", "t": 40.6, "text": "What works. One narrow task. Hard boundaries. Human check.", "asr": "What works. One narrow task. Hard boundaries. Human check.", "voice": "af_sarah", "speed": 1.0},
+  {"id": "l10", "t": 45.8, "text": "Boring scope beats a genius agent. Every single time.", "asr": "Boring scope beats a genius agent. Every single time.", "voice": "af_sarah", "speed": 1.0},
+  {"id": "l11", "t": 50.4, "text": "Comment AGENT for the checklist that actually ships.", "asr": "Comment AGENT for the checklist that actually ships.", "voice": "af_sarah", "speed": 1.0}
+]
