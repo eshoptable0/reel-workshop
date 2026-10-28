@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<title>The Machine That Never Arrives</title>
+<style>
+  html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:#12100E}
+  #c{display:block}
+</style>
+</head><body><canvas id="c" width="1080" height="1920"></canvas>
+<script>
+const g = document.getElementById('c').getContext('2d');
+const W = 1080, H = 1920, DUR = 30;
+
+// ── palette: 2 neutrals + 1 accent, accent at 72% sat
+const C = { light:'#F4F0E8', dark:'#12100E', accent:'#D4573B', dim:'rgba(244,240,232,0.55)' };
+
+// ── timed beats (seconds)
+const T = {
+  hook:0.0, setup:1.6, body1:4.4, body2:9.0, body3:14.0, payoff:19.5, cta:25.0
+};
+
+const A = {}, FONT = {};
+
+// real assets only
+const IMG = {
+  night:    'assets/photos/pex_2582937.jpg',     // city at night, the ground
+  hand:     'assets/photos/pex_373543.jpg',      // hands, for body 3
+  paper:    'assets/textures-real/decrepit_wallpaper-1k.jpg',
+  concrete: 'assets/textures-real/concrete_wall_008-1k.jpg',
+  grain:    'assets/textures/grain.png',
+  halftone: 'assets/textures/halftone-45.png',
+};
+const FONTS = {
+  display:'assets/fonts/ArchivoBlack-400.ttf',
+  serif:  'assets/fonts/InstrumentSerif-400.ttf',
+  mono:   'assets/fonts/JetBrainsMono-400.ttf',
+};
+
+function img(src){ return new Promise(r=>{const i=new Image(); i.onload=()=>r(i); i.onerror=()=>r(null); i.src=src;}); }
+
+async function boot(){
+  for (const [k,v] of Object.entries(IMG)) A[k] = await img(v);
+  let n=0;
+  for (const [k,v] of Object.entries(FONTS)){
+    try{ const f=new FontFace('R'+n, `url(${v})`); await f.load(); document.fonts.add(f); FONT[k]='R'+n; n++; }catch(e){}
+  }
+  window.READY = true;
+}
+
+// ── easing: the four curves from the study, no linear anywhere
+const E = {
+  in:      t => 1-Math.pow(1-clamp(t),4),                  // ~(.16,1,.3,1) decelerate
+  out:     t => Math.pow(clamp(t),3),                      // ~(.7,0,.84,0) accelerate
+  io:      t => { const x=clamp(t); return x<.5 ? 4*x*x*x : 1-Math.pow(-2*x+2,3)/2; },
+  camera:  t => { const x=clamp(t); return x*x*(3-2*x); },
+  back:    t => { const x=clamp(t), s=0.9; return 1+(s+1)*Math.pow(x-1,3)+s*Math.pow(x-1,2); } // +4% overshoot
+};
+const clamp = v => Math.max(0,Math.min(1,v));
+const seg = (t,a,b) => clamp((t-a)/(b-a));
+function drawText(s, x, y, font, color, size, tracking, alpha){
+  if (alpha <= 0) return;
+  g.save(); g.globalAlpha = alpha;
+  g.font = `${size}px "${font}"`;
+  g.letterSpacing = tracking + 'px';
+  g.fillStyle = color;
+  g.fillText(s, x, y);
+  g.restore();
+}
+function cover(im, dx,dy,dw,dh, alpha=1, comp='source-over'){
+  if(!im) return;
+  const s = Math.max(dw/im.width, dh/im.height);
+  const w = im.width*s, h = im.height*s;
+  g.save(); g.globalAlpha=alpha; g.globalCompositeOperation=comp;
+  g.drawImage(im, dx+(dw-w)/2, dy+(dh-h)/2, w, h);
+  g.restore();
+}
+
+// ── the whole film is a pure function of t
+window.render = function(time){
+  const t = ((time % DUR) + DUR) % DUR;
+  g.clearRect(0,0,W,H);
+
+  // ============ GROUND: real photograph, looped by construction ============
+  // the ground never changes, so frame 0 and the last frame are identical.
+  if (A.night){
+    cover(A.night, 0, 0, W, H, 1);
+    g.fillStyle = 'rgba(10,9,8,0.56)'; g.fillRect(0,0,W,H);
+  } else {
+    g.fillStyle = C.dark; g.fillRect(0,0,W,H);
+  }
+  if (A.paper){ g.save(); g.globalAlpha=0.13; g.globalCompositeOperation='multiply';
+    cover(A.paper, 0,0,W,H,1); g.restore(); }
+
+  // ============ BEAT 1 — HOOK (0.0-1.6) ============
+  if (t < T.setup + 0.4){
+    const p = E.in(seg(t, 0.05, 0.55));
+    if (A.hand){
+      g.save(); g.beginPath(); g.rect(64, 260, 452, 640); g.clip();
+      cover(A.hand, 64,260,452,640, 0.85);
+      g.restore();
+      g.strokeStyle='rgba(244,240,232,0.20)'; g.lineWidth=1.5; g.strokeRect(64.75,260.75,451,639);
+    }
+    g.save();
+    g.beginPath(); g.rect(0, 980, W, 200); g.clip();
+    drawText('IT PLANS.', 76, 1120 + (1-p)*60, FONT.display, C.light, 176, -8, p);
+    g.restore();
+    drawText('FIG. 01 / 2026', 80, 1540, FONT.mono, C.dim, 30, 1.5, E.in(seg(t,0.5,0.9)));
+  }
+
+  // ============ BEAT 2 — SETUP (1.6-4.4): three lines, each replacing the last ============
+  if (t >= T.setup && t < T.body1 + 0.3){
+    const words = [
+      ['IT ACTS.',   1.6, 2.5],
+      ['IT NEVER',   2.5, 3.4],
+      ['ARRIVES.',   3.4, 4.6],
+    ];
+    words.forEach(([s, t0, t1], i) => {
+      const pin = E.in(seg(t, t0, t0+0.32));
+      const pout = E.out(seg(t, t1-0.24, t1));
+      if (pin <= 0 || pout >= 1) return;
+      const isLast = i === 2;
+      const a = pin * (1-pout);
+      const y = 1120 + (1-pin)*44 - pout*44;
+      if (isLast){
+        drawText(s, 78, y, FONT.serif, C.accent, 150, -3, a);
+      } else {
+        drawText(s, 76, y, FONT.display, C.light, 168, -7, a);
+      }
+    });
+    // the concrete slab, bottom-right, rotated — imperfection that stays put
+    if (A.concrete){
+      g.save(); g.translate(706, 1592); g.rotate(-0.028); g.globalAlpha=0.78;
+      g.drawImage(A.concrete, -70, -70, 520, 380); g.restore();
+    }
+  }
+
+  // ============ BEAT 3 — BODY 1: the plan card (4.4-9.0) ============
+  if (t >= T.body1 && t < T.body2 + 0.4){
+    const pin = E.in(seg(t, 4.4, 4.9));
+    const pout = E.out(seg(t, 8.7, 9.2));
+    const a = pin*(1-pout);
+    if (a > 0){
+      g.save(); g.globalAlpha = a;
+      g.translate(0, (1-pin)*50);
+
+      drawText('THE PLAN — 5 STEPS', 80, 300, FONT.mono, C.dim, 30, 1.5, 1);
+
+      const rows = [
+        ['01','read the request','OK',true],
+        ['02','pick the file','OK',true],
+        ['03','remember step one','LOST',false],
+        ['04','invent step nine','FALSE',false],
+        ['05','confirm it worked','CLAIMED',false],
+      ];
+      rows.forEach(([n,label,status,ok], i) => {
+        const rp = E.in(seg(t, 4.7 + i*0.22, 5.0 + i*0.22));
+        if (rp <= 0) return;
+        const y = 420 + i*168;
+        g.save(); g.globalAlpha = a * rp;
+        g.translate((1-rp)*-30, 0);
+
+        drawText(n, 84, y, FONT.mono, C.dim, 30, 1, 1);
+        drawText(label, 168, y, FONT.mono, ok ? C.light : 'rgba(244,240,232,0.82)', 44, 0, 1);
+        const st = status;
+        g.font = `30px "${FONT.mono}"`; g.letterSpacing = '1px';
+        g.fillStyle = ok ? '#4FA36B' : C.accent;
+        g.fillText(st, W - 92 - g.measureText(st).width, y);
+
+        g.fillStyle = 'rgba(244,240,232,0.16)';
+        g.fillRect(84, y+26, W-168, 1.5);
+        g.restore();
+      });
+
+      // the red strike pulls out of row 03 — a line that becomes the next divider
+      const sp = E.in(seg(t, 6.6, 7.3));
+      if (sp > 0){
+        g.save(); g.globalAlpha = a;
+        g.fillStyle = C.accent;
+        g.fillRect(164, 420 + 2*168 - 16, (W-260) * sp, 7);
+        g.restore();
+      }
+      g.restore();
+    }
+  }
+
+  // ============ BEAT 4 — BODY 2: $40 (9.0-14.0) ============
+  if (t >= T.body2 && t < T.body3 + 0.4){
+    const pin = E.in(seg(t, 9.0, 9.5));
+    const pout = E.out(seg(t, 13.6, 14.2));
+    const a = pin*(1-pout);
+    g.save(); g.globalAlpha = a;
+    const sc = 0.94 + 0.06*E.back(seg(t, 9.0, 9.6));
+    g.translate(76, 1180); g.scale(sc, sc);
+    drawText('$40', 0, 0, FONT.display, C.light, 300, -12, 1);
+    g.restore();
+
+    drawText('six hours. zero tasks completed.', 80, 1300, FONT.serif, C.accent, 54, -1, a*E.in(seg(t,9.5,10.0)));
+
+    // real clock, mono, ticking in the corner
+    const hrs = Math.floor(seg(t, 9.0, 13.8) * 6);
+    drawText(String(hrs).padStart(2,'0') + ':00 / HOURS', 80, 220, FONT.mono, C.dim, 30, 1.5, a);
+    g.restore();
+  }
+
+  // ============ BEAT 5 — BODY 3: a human (14.0-19.5) ============
+  if (t >= T.body3 && t < T.payoff + 0.4){
+    const pin = E.in(seg(t, 14.0, 14.6));
+    const pout = E.out(seg(t, 19.1, 19.7));
+    const a = pin*(1-pout);
+    // the photo slides LEFT as the beat resolves — the carry
+    const slide = E.camera(seg(t, 17.6, 18.6));
+    if (A.hand){
+      g.save();
+      g.beginPath(); g.rect(0, 0, W*0.62, H); g.clip();
+      cover(A.hand, -slide*160, 0, W, H, 0.9);
+      g.restore();
+    }
+    if (A.halftone){
+      g.save(); g.globalAlpha = 0.22*a; g.globalCompositeOperation='multiply';
+      g.drawImage(A.halftone, 0, 0, W*0.62, H); g.restore();
+    }
+    g.save(); g.globalAlpha = a;
+    g.fillStyle='rgba(10,9,8,0.30)'; g.fillRect(0,0,W*0.62,H);
+    g.restore();
+
+    drawText('STILL NEEDS', 80, 1180, FONT.display, C.light, 132, -5, a*E.in(seg(t,14.4,14.9)));
+    drawText('A HUMAN.',   80, 1320, FONT.display, C.light, 132, -5, a*E.in(seg(t,14.9,15.4)));
+    drawText('to press send', 84, 1400, FONT.serif, C.accent, 58, -1, a*E.in(seg(t,15.2,15.7)));
+  }
+
+  // ============ BEAT 6 — PAYOFF (19.5-25.0): three lines on the beat ============
+  if (t >= T.payoff && t < T.cta + 0.4){
+    const a0 = E.in(seg(t, 19.5, 20.0));
+    const pout = E.out(seg(t, 24.6, 25.2));
+    const a = a0*(1-pout);
+    drawText('WHAT ACTUALLY WORKS', 80, 340, FONT.mono, C.dim, 30, 1.5, a);
+
+    const lines = [['ONE NARROW TASK.', 20.0], ['HARD BOUNDS.', 20.9], ['A HUMAN CHECK.', 21.8]];
+    lines.forEach(([s, t0], i) => {
+      const p = E.in(seg(t, t0, t0+0.34));
+      if (p <= 0) return;
+      drawText(s, 80, 560 + i*190 + (1-p)*40, FONT.display, i===2 ? C.accent : C.light, 112, -4, a*p);
+      g.save(); g.globalAlpha = a*p*0.5;
+      g.fillStyle = C.light; g.fillRect(80, 560 + i*190 + 34, (W-160)*p, 2);
+      g.restore();
+    });
+
+    // the last rule extends to full width and becomes the loop's horizon
+    const ext = E.in(seg(t, 23.0, 24.4));
+    if (ext > 0){
+      g.save(); g.globalAlpha = a;
+      g.fillStyle = C.accent;
+      g.fillRect(0, 1130, W * Math.max(0.001, ext), 6);
+      g.restore();
+    }
+  }
+
+  // ============ BEAT 7 — LOOP / CTA (25.0-30.0) ============
+  if (t >= T.cta){
+    const a = E.in(seg(t, 25.0, 25.6));
+    drawText('BORING SCOPE WINS.', 80, 1180, FONT.display, C.light, 96, -4, a);
+    drawText('fig. 01 / 2026', 80, 1500, FONT.mono, C.dim, 30, 1.5, a);
+    // on the last second, the type fades so the loop seam is invisible
+    const fade = E.out(seg(t, 29.2, 30.0));
+    if (fade > 0){
+      g.save(); g.globalAlpha = fade; g.fillStyle = 'rgba(10,9,8,0.56)';
+      g.fillRect(0,1100,W,520);
+      g.restore();
+    }
+  }
+
+  // ============ PERSISTENT: halftone on the photo window, grain, vignette ============
+  if (A.halftone && A.hand && t < T.setup){
+    g.save(); g.beginPath(); g.rect(64,260,452,640); g.clip();
+    g.globalAlpha=0.22; g.globalCompositeOperation='multiply';
+    g.drawImage(A.halftone, 64,260,452,640);
+    g.restore();
+  }
+
+  // grain — re-seeded every frame, never a static overlay
+  if (A.grain){
+    const seed = Math.floor(t * 30);
+    const ox = (seed * 137) % 96, oy = (seed * 211) % 96;
+    g.save(); g.globalAlpha=0.09; g.globalCompositeOperation='overlay';
+    for (let y=-96; y<H+96; y+=128)
+      for (let x=-96; x<W+96; x+=128)
+        g.drawImage(A.grain, x+ox, y+oy, 128, 128);
+    g.restore();
+  }
+
+  // vignette 18%
+  const vg = g.createRadialGradient(W*0.46,H*0.42,H*0.20, W*0.5,H*0.5,H*0.92);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(8,6,5,0.40)');
+  g.fillStyle = vg; g.fillRect(0,0,W,H);
+};
+
+window.DUR = DUR;
+boot().then(()=>window.render(0));
+</script></body></html>
