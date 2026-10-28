@@ -24,7 +24,12 @@ DUR = 54.0
 N = int(DUR * SR)
 mix = np.zeros((N, 2), np.float32)
 
-from core.audio import sfx as S
+try:
+    from core.audio import sfx as S
+    FOLEY = True
+except Exception as e:
+    print('foley unavailable:', e)
+    FOLEY = False
 
 lines = json.load(open(f'{D}/lines.json'))
 
@@ -44,6 +49,7 @@ for L in lines:
         add16(x * .8, L['t'])
 
 def at(name, t, gain=1.0):
+    if not FOLEY: return
     if name == 'thump': x = S.thump(f=62)
     elif name == 'clack': x = S.clack()
     elif name == 'whoosh': x = S.whoosh(.5)
