@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>html,body{margin:0;width:1080px;height:1920px;overflow:hidden;background:#000}#c{display:block}</style>
+</head><body><canvas id="c" width="1080" height="1920"></canvas>
+<script>
+const g = document.getElementById('c').getContext('2d');
+const W = 1080, H = 1920;
+const A = {}, FONT = {};
+
+// ---- real assets only: photographs, footage stills, paper, grain
+const IMG = {
+  paper:   'assets/textures-real/decrepit_wallpaper-1k.jpg',
+  plaster: 'assets/textures-real/damaged_plaster-1k.jpg',
+  concrete:'assets/textures-real/concrete_wall_008-1k.jpg',
+  grain:   'assets/textures/grain.png',
+  halftone:'assets/textures/halftone-45.png',
+  photo1:  'assets/photos/pex_2582937.jpg',
+  photo2:  'assets/photos/pex_373543.jpg',
+};
+const FONTS = {
+  display: 'assets/fonts/ArchivoBlack-400.ttf',
+  serif:   'assets/fonts/InstrumentSerif-400.ttf',
+  mono:    'assets/fonts/JetBrainsMono-400.ttf',
+};
+
+function img(src){ return new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src;}); }
+
+async function boot(){
+  for (const [k,v] of Object.entries(IMG)) A[k] = await img(v);
+  let n=0;
+  for (const [k,v] of Object.entries(FONTS)){
+    try{ const f=new FontFace('F'+n, `url(${v})`); await f.load(); document.fonts.add(f); FONT[k]='F'+n; n++; }catch(e){}
+  }
+  window.READY = true;
+}
+
+function cover(img, dx,dy,dw,dh, alpha=1, comp='source-over'){
+  if(!img) return;
+  const s = Math.max(dw/img.width, dh/img.height);
+  const w = img.width*s, h = img.height*s;
+  g.save(); g.globalAlpha=alpha; g.globalCompositeOperation=comp;
+  g.drawImage(img, dx+(dw-w)/2, dy+(dh-h)/2, w, h);
+  g.restore();
+}
+
+function tile(img, alpha, scale, comp){
+  if(!img) return;
+  g.save(); g.globalAlpha=alpha; g.globalCompositeOperation=comp||'source-over';
+  const w=img.width*scale,h=img.height*scale;
+  for(let y=0;y<H;y+=h)for(let x=0;x<W;x+=w)g.drawImage(img,x,y,w,h);
+  g.restore();
+}
+
+window.render = function(t){
+  // ── 1. ground: a real photograph, darkened, NOT a flat fill
+  if (A.photo1){ cover(A.photo1, 0,0,W,H, 1); g.fillStyle='rgba(10,9,8,0.52)'; g.fillRect(0,0,W,H); }
+  else { g.fillStyle='#12100E'; g.fillRect(0,0,W,H); }
+
+  // ── 2. paper tooth over it, multiply — kills the "vector" feel
+  if (A.paper){ g.save(); g.globalAlpha=0.13; g.globalCompositeOperation='multiply';
+    cover(A.paper,0,0,W,H,1); g.restore(); }
+
+  // ── 3. a real photo window, hard-cropped, sitting off-centre (43% width)
+  if (A.photo2){
+    g.save();
+    g.beginPath(); g.rect(64, 300, 452, 604); g.clip();
+    cover(A.photo2, 64,300,452,604, 1);
+    g.restore();
+    g.strokeStyle='rgba(240,236,228,0.22)'; g.lineWidth=1.5; g.strokeRect(64.75,300.75,451,603);
+  }
+
+  // ── 4. type: display face very large, tight tracking, optical left
+  g.textBaseline='alphabetic';
+  if (FONT.display){
+    g.fillStyle='#F4F0E8';
+    g.font='400 176px "'+FONT.display+'"';
+    g.letterSpacing='-8px';
+    g.fillText('THE', 76, 1130);
+    g.fillText('MACHINE', 76, 1290);
+  }
+  // ── 5. serif counter-voice, italic-feeling, in the accent
+  if (FONT.serif){
+    g.font='400 104px "'+FONT.serif+'"';
+    g.letterSpacing='-2px';
+    g.fillStyle='#D4573B';
+    g.fillText('never arrives', 80, 1436);
+  }
+  // ── 6. mono note, small, bottom-left, well inside the 320px safe floor
+  if (FONT.mono){
+    g.font='400 30px "'+FONT.mono+'"';
+    g.letterSpacing='1.5px';
+    g.fillStyle='rgba(244,240,232,0.55)';
+    g.fillText('FIG. 01 / 2026', 80, 1548);
+  }
+
+  // ── 7. halftone over the photo window only — real print language
+  if (A.halftone && A.photo2){
+    g.save();
+    g.beginPath(); g.rect(64,300,452,604); g.clip();
+    g.globalAlpha=0.22; g.globalCompositeOperation='multiply';
+    g.drawImage(A.halftone, 64,300,452,604);
+    g.restore();
+  }
+
+  // ── 8. concrete slab at the bottom, rotated a hair, cropped by the edge
+  if (A.concrete){
+    g.save();
+    g.translate(700, 1560); g.rotate(-0.028);
+    g.globalAlpha=0.80;
+    g.drawImage(A.concrete, -60, -60, 520, 380);
+    g.restore();
+  }
+
+  // ── 9. grain on top, animated per frame (static grain reads as a filter)
+  if (A.grain){
+    g.save();
+    g.globalAlpha=0.09; g.globalCompositeOperation='overlay';
+    const ox = (t*137)%64, oy = (t*211)%64;
+    for(let y=-64;y<H+64;y+=128)for(let x=-64;x<W+64;x+=128)
+      g.drawImage(A.grain, x+ox, y+oy, 128, 128);
+    g.restore();
+  }
+
+  // ── 10. vignette 18% + a whisper of chromatic offset at the corners
+  const vg = g.createRadialGradient(W*0.46,H*0.42,H*0.20, W*0.5,H*0.5,H*0.92);
+  vg.addColorStop(0,'rgba(0,0,0,0)'); vg.addColorStop(1,'rgba(8,6,5,0.42)');
+  g.fillStyle=vg; g.fillRect(0,0,W,H);
+};
+
+boot().then(()=>window.render(0));
+</script></body></html>
