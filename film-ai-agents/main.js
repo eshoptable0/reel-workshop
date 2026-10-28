@@ -1,0 +1,14 @@
+import { renderFilm, setScore, setWords, setLines, subs, buildEvents, DUR } from './film.mjs';
+const cv = document.getElementById('c'), g = cv.getContext('2d');
+await Promise.all(['300','400','500','600','700','800','900'].map(w => document.fonts.load(`${w} 40px Archivo`)));
+setScore([]);
+const lines = await (await fetch('lines.json')).json();
+const dur = await (await fetch('voices/dur.json')).json();
+setLines(lines, dur);
+setWords(await (await fetch('voices/words_rel.json')).json());
+window.DUR = DUR;
+window.EV = buildEvents();
+window.SUBS = subs();
+const Q = new URLSearchParams(location.search);
+window.render = t => renderFilm(g, t, { nosub: Q.has('nosub'), poster: Q.has('poster') });
+window.READY = true;
