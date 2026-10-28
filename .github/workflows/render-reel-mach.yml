@@ -1,0 +1,111 @@
+name: render-reel-mach
+# Renders a canvas composition frame-by-frame to MP4 on the runner, then
+# uploads the video plus a contact sheet. No local Chrome needed.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "folder in the repo holding index.html"
+        default: "reel-mach"
+      fps:
+        default: "30"
+      duration:
+        default: "30"
+      width:
+        default: "1080"
+      height:
+        default: "1920"
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: System deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium-browser ffmpeg || true
+          chromium-browser --version || chromium --version || true
+          node -v
+
+      - name: Install puppeteer
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install puppeteer-core@24 2>&1 | tail -2
+
+      - name: Render frames
+        env:
+          TARGET: ${{ inputs.target }}
+          FPS: ${{ inputs.fps }}
+          DUR: ${{ inputs.duration }}
+          W: ${{ inputs.width }}
+          H: ${{ inputs.height }}
+        run: |
+          cat > render.mjs <<'EOF'
+          import puppeteer from 'puppeteer-core';
+          import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+          const cands=['/usr/bin/chromium-browser','/usr/bin/chromium','/usr/bin/google-chrome'];
+          const exe=cands.find(p=>existsSync(p));
+          if(!exe){console.error('no chrome');process.exit(1);}
+          const target=process.env.TARGET, fps=+process.env.FPS, dur=+process.env.DUR;
+          const w=+process.env.W, h=+process.env.H;
+          const N=Math.round(dur*fps);
+          mkdirSync('frames',{recursive:true});
+          const br=await puppeteer.launch({
+            executablePath:exe, headless:'new', protocolTimeout:300000,
+            args:['--no-sandbox','--disable-dev-shm-usage','--allow-file-access-from-files',
+                  '--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist',
+                  '--window-size='+w+','+h]
+          });
+          const pg=await br.newPage();
+          await pg.setViewport({width:w,height:h,deviceScaleFactor:1});
+          const errs=[];
+          pg.on('pageerror',e=>errs.push(e.message));
+          pg.on('console',m=>{if(m.type()==='error')errs.push(m.text());});
+          await pg.goto('file://'+process.cwd()+'/'+target+'/index.html',{waitUntil:'load'});
+          await pg.waitForFunction('window.READY === true',{timeout:90000});
+          console.log('READY, rendering',N,'frames');
+          for(let i=0;i<N;i++){
+            const t=i/fps;
+            await pg.evaluate((tt)=>window.render(tt), t);
+            const buf=await pg.screenshot({type:'png'});
+            writeFileSync(`frames/f${String(i).padStart(5,'0')}.png`,buf);
+            if(i%60===0)console.log(`  ${i}/${N}`);
+          }
+          await br.close();
+          if(errs.length)console.log('page errors:',errs.slice(0,5));
+          console.log('frames done');
+          EOF
+          node render.mjs
+          ls frames | wc -l
+
+      - name: Encode MP4
+        env:
+          FPS: ${{ inputs.fps }}
+          TARGET: ${{ inputs.target }}
+        run: |
+          ffmpeg -y -loglevel error -framerate "$FPS" -i frames/f%05d.png \
+            -c:v libx264 -preset medium -crf 16 -maxrate 9M -bufsize 18M \
+            -pix_fmt yuv420p -profile:v high -level 4.2 -movflags +faststart \
+            "$TARGET.mp4"
+          ls -la "$TARGET.mp4"
+          ffprobe -v error -show_entries format=duration,bit_rate -show_entries stream=width,height -of compact "$TARGET.mp4"
+
+      - name: Contact sheet
+        env:
+          TARGET: ${{ inputs.target }}
+          DUR: ${{ inputs.duration }}
+        run: |
+          ffmpeg -y -loglevel error -i "$TARGET.mp4" -vf "fps=1/2,scale=270:-1,tile=4x4" -frames:v 1 sheet.jpg || true
+          ls -la sheet.jpg || true
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: reel-output
+          path: |
+            *.mp4
+            sheet.jpg
+          if-no-files-found: error
