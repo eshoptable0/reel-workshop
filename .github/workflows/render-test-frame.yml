@@ -1,0 +1,70 @@
+name: render-test-frame
+# Renders one still from a canvas composition and uploads it as an artifact.
+# Chrome is guaranteed on the runner; the local container's Chrome hangs.
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "path inside the repo to the composition html"
+        default: "test-look/index.html"
+      width:
+        default: "1080"
+      height:
+        default: "1920"
+
+jobs:
+  shot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: System deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq chromium-browser fonts-liberation || true
+          node -v; python3 -V
+
+      - name: Install puppeteer
+        run: |
+          npm init -y >/dev/null 2>&1
+          npm install puppeteer-core@24 2>&1 | tail -2
+
+      - name: Screenshot the composition
+        run: |
+          cat > shot.mjs <<'EOF'
+          import puppeteer from 'puppeteer-core';
+          import { existsSync } from 'node:fs';
+          const cands = ['/usr/bin/chromium-browser','/usr/bin/chromium','/usr/bin/google-chrome'];
+          const exe = cands.find(p => existsSync(p));
+          if (!exe) { console.error('no chrome'); process.exit(1); }
+          const target = process.env.TARGET;
+          const w = +process.env.W, h = +process.env.H;
+          const br = await puppeteer.launch({
+            executablePath: exe, headless: 'new', protocolTimeout: 120000,
+            args: ['--no-sandbox','--disable-dev-shm-usage','--allow-file-access-from-files',
+                   '--use-angle=swiftshader','--enable-unsafe-swiftshader',
+                   '--ignore-gpu-blocklist','--window-size='+w+','+h]
+          });
+          const pg = await br.newPage();
+          await pg.setViewport({ width: w, height: h, deviceScaleFactor: 1 });
+          pg.on('pageerror', e => console.log('PAGEERROR:', e.message));
+          pg.on('console', m => { if (m.type()==='error') console.log('CONSOLE:', m.text()); });
+          await pg.goto('file://' + process.cwd() + '/' + target, { waitUntil: 'load' });
+          try { await pg.waitForFunction('window.READY === true', { timeout: 60000 }); }
+          catch { console.log('READY never set'); }
+          await pg.evaluate(() => window.render && window.render(0));
+          await new Promise(r => setTimeout(r, 800));
+          await pg.screenshot({ path: 'frame.png' });
+          console.log('wrote frame.png');
+          await br.close();
+          EOF
+          TARGET="${{ inputs.target }}" W="${{ inputs.width }}" H="${{ inputs.height }}" node shot.mjs
+          ls -la frame.png
+
+      - name: Upload frame
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-frame
+          path: frame.png
+          if-no-files-found: error
