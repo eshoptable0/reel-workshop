@@ -1,0 +1,12 @@
+[
+  {"id": "l1", "t": 1.2, "text": "Every year, someone files a patent for a machine that thinks.", "asr": "Every year, someone files a patent for a machine that thinks.", "voice": "am_michael", "speed": 1.0},
+  {"id": "l2", "t": 6.4, "text": "Application 2026 slash 4471. The autonomous agent.", "asr": "Application 2026 slash 4471. The autonomous agent.", "voice": "am_michael", "speed": 1.0},
+  {"id": "l3", "t": 12.0, "text": "Figure one. Thirteen parts. One very optimistic context window.", "asr": "Figure one. Thirteen parts. One very optimistic context window.", "voice": "am_michael", "speed": 1.0},
+  {"id": "l4", "t": 18.4, "text": "Figure two. It plans. It acts. It forgets what it was doing.", "asr": "Figure two. It plans. It acts. It forgets what it was doing.", "voice": "am_michael", "speed": 1.0},
+  {"id": "l5", "t": 24.4, "text": "Figure three. Six hours of autonomy. Forty dollars of nothing.", "asr": "Figure three. Six hours of autonomy. Forty dollars of nothing.", "voice": "am_michael", "speed": 1.0},
+  {"id": "l6", "t": 30.6, "text": "The examiner's note. Claim one: does the whole job. Untrue.", "asr": "The examiner's note. Claim one: does the whole job. Untrue.", "voice": "am_michael", "speed": 1.0},
+  {"id": "l7", "t": 36.8, "text": "Claim two: replaces the operator. Requires an operator.", "asr": "Claim two: replaces the operator. Requires an operator.", "voice": "am_michael", "speed": 1.0},
+  {"id": "l8", "t": 42.4, "text": "Status: rejected. Scope was not narrow enough to be true.", "asr": "Status rejected. Scope was not narrow enough to be true.", "voice": "am_michael", "speed": 1.0},
+  {"id": "l9", "t": 48.6, "text": "The working version was filed later. One task. Hard bounds.", "asr": "The working version was filed later. One task. Hard bounds.", "voice": "am_michael", "speed": 1.0},
+  {"id": "l10", "t": 54.4, "text": "Comment AGENT for the claims that actually get approved.", "asr": "Comment AGENT for the claims that actually get approved.", "voice": "am_michael", "speed": 1.0}
+]
