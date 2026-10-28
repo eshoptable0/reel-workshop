@@ -1,0 +1,64 @@
+name: render-blueprint-agent
+# "THE AUTONOMOUS AGENT / PATENT 2026-4471" — blueprint world, portrait 1080x1920 60fps
+on:
+  workflow_dispatch:
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: System deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-liberation fonts-liberation-sans fonts-liberation2 python3-venv python3-pip chromium-browser
+          echo "--- monospace fonts available ---"
+          fc-list | grep -iE "courier|liberation mono|dejavu sans mono" | head -6 || echo "none found"
+
+      - name: Clone lemo-opuscar
+        run: git clone --depth 1 https://github.com/lemomo-ai/lemo-opuscar.git
+
+      - name: Move film + fonts
+        run: |
+          cd lemo-opuscar
+          mkdir -p films/blueprint-agent/fonts films/blueprint-agent/music
+          cp -r "$GITHUB_WORKSPACE/film-blueprint-agent/"* films/blueprint-agent/
+          curl -sL -o films/blueprint-agent/fonts/Archivo-VF.ttf "https://github.com/google/fonts/raw/main/ofl/archivo/Archivo%5Bwdth%2Cwght%5D.ttf"
+          ls -la films/blueprint-agent/
+
+      - name: Setup core + voice (with fallback)
+        run: |
+          cd lemo-opuscar
+          sh plugin/skills/lemo-opuscar/scripts/setup.sh deps 2>&1 | tail -4 || echo "setup failed, fallback"
+          [ -x .venv/bin/python ] || { python3 -m venv .venv && .venv/bin/pip install -q numpy scipy soundfile soxr pillow; }
+          sh plugin/skills/lemo-opuscar/scripts/setup.sh deps voice 2>&1 | tail -4 || echo "voice tier failed, continuing"
+          ls .venv/bin | head -4
+
+      - name: Build (full pipeline, gated)
+        run: |
+          cd lemo-opuscar
+          sh films/blueprint-agent/build.sh 2>&1 | tee /tmp/build.log
+
+      - name: Dump build log on failure
+        if: failure()
+        run: |
+          echo "===== BUILD LOG (tail 140) ====="
+          tail -140 /tmp/build.log || true
+          echo "===== ERROR LINES ====="
+          grep -nE "Traceback|Error|error|No such|not found|GATE|exit code" /tmp/build.log | grep -viE "snap|Get:|Selecting" | tail -40 || true
+
+      - name: Upload video
+        uses: actions/upload-artifact@v4
+        with:
+          name: blueprint-agent-video
+          path: lemo-opuscar/films/blueprint-agent/blueprint-agent.mp4
+          if-no-files-found: error
+
+      - name: Upload stills
+        uses: actions/upload-artifact@v4
+        with:
+          name: blueprint-agent-stills
+          path: lemo-opuscar/films/blueprint-agent/out/stills/
+          if-no-files-found: warn
