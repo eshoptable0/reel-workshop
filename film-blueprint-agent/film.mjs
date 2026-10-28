@@ -198,7 +198,7 @@ function drawFig1(g, t) {
   const p = snap(t, T.fig1, E8 * 1.6);
   const out = snap(t, T.fig2 - .1, E8);
   g.save(); g.globalAlpha = (1 - out) * p;
-  const cx = W / 2, baseY = BAR_Y - 120;
+  const cx = W / 2, baseY = BAR_Y - 60;   // sit just above the FIG label strip
 
   // ---- main tower (draw-on, line by line) ----
   const L = (x0, y0, x1, y1, w = 2) => { g.lineWidth = w; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke(); };
@@ -215,8 +215,8 @@ function drawFig1(g, t) {
     g.beginPath(); g.arc(cx + wx, baseY + 26, 24, 0, Math.PI * 2 * dp); g.stroke();
   });
   // lattice tower
-  const tw = 46;
-  const topY = baseY - 470;
+  const tw = 54;
+  const topY = baseY - 700;               // stretch the mast to fill the sheet
   L(cx - tw, baseY - 60, cx - tw, topY, 2.5);
   L(cx + tw, baseY - 60, cx + tw, topY, 2.5);
   for (let y = baseY - 100; y > topY; y -= 70) {
@@ -225,31 +225,36 @@ function drawFig1(g, t) {
     if (adv < dp * 1.05) { L(lx, y, rx, y - 40, 1.2); L(rx, y, lx, y - 40, 1.2); }
   }
   // boom arm
-  const boomEnd = { x: cx + 300, y: topY - 60 };
+  const boomEnd = { x: cx + 330, y: topY - 70 };
   if (dp > .5) {
     L(cx, topY, boomEnd.x, boomEnd.y, 3);
     L(cx, topY, cx + 120, topY + 40, 1.5);
     // funnel net
     g.lineWidth = 2; g.strokeStyle = C.ink;
     g.beginPath();
-    g.moveTo(boomEnd.x - 44, boomEnd.y); g.lineTo(boomEnd.x - 20, boomEnd.y + 90);
-    g.lineTo(boomEnd.x + 20, boomEnd.y + 90); g.lineTo(boomEnd.x + 44, boomEnd.y);
+    g.moveTo(boomEnd.x - 54, boomEnd.y); g.lineTo(boomEnd.x - 24, boomEnd.y + 108);
+    g.lineTo(boomEnd.x + 24, boomEnd.y + 108); g.lineTo(boomEnd.x + 54, boomEnd.y);
     g.stroke();
     // net cross-hatch
     g.lineWidth = 1; g.strokeStyle = C.inkDim;
-    for (let i = -3; i <= 3; i++) {
-      g.beginPath(); g.moveTo(boomEnd.x + i * 11, boomEnd.y + 6); g.lineTo(boomEnd.x + i * 5, boomEnd.y + 86); g.stroke();
+    for (let i = -4; i <= 4; i++) {
+      g.beginPath(); g.moveTo(boomEnd.x + i * 13, boomEnd.y + 6); g.lineTo(boomEnd.x + i * 6, boomEnd.y + 104); g.stroke();
     }
     // a small cloud drifting into the net
-    const cp = snap(t, T.fig1 + 1.6, E8 * 1.2);
+    const cp = snap(t, T.fig1 + 1.5, E8 * 1.6);
     if (cp > 0) {
-      g.save(); g.globalAlpha = (1 - out) * cp; g.strokeStyle = C.yellow; g.lineWidth = 2;
-      const clx = boomEnd.x - 130 + 40 * (1 - cp), cly = boomEnd.y + 40;
+      g.save(); g.globalAlpha = (1 - out) * cp; g.strokeStyle = C.yellow; g.lineWidth = 2.5;
+      // drifts right, settling into the mouth of the net
+      const clx = boomEnd.x - 210 + 92 * cp, cly = boomEnd.y + 34;
       g.beginPath();
-      g.arc(clx, cly, 22, Math.PI * .15, Math.PI * 1.6, true);
-      g.arc(clx + 26, cly - 10, 18, Math.PI * 1.1, Math.PI * .3, true);
-      g.arc(clx + 54, cly + 2, 20, Math.PI * 1.2, Math.PI * .35, true);
+      g.arc(clx, cly, 26, Math.PI * .12, Math.PI * 1.62, true);
+      g.arc(clx + 32, cly - 13, 22, Math.PI * 1.12, Math.PI * .30, true);
+      g.arc(clx + 66, cly + 1, 24, Math.PI * 1.18, Math.PI * .34, true);
       g.stroke();
+      // puffs
+      g.lineWidth = 1.4;
+      g.beginPath(); g.arc(clx + 18, cly + 16, 9, 0, Math.PI * 2); g.stroke();
+      g.beginPath(); g.arc(clx + 48, cly + 18, 11, 0, Math.PI * 2); g.stroke();
       g.restore();
     }
     // flag
@@ -322,9 +327,9 @@ function drawFig2(g, t) {
   }
   // three nodes
   const nodes = [
-    { a: -Math.PI / 2, label: 'PLAN', sub: 'thinks about it' },
-    { a: -Math.PI / 2 + (2 * Math.PI / 3), label: 'ACT', sub: 'does something' },
-    { a: -Math.PI / 2 + (4 * Math.PI / 3), label: 'FORGET', sub: 'loses the thread' },
+    { a: -Math.PI / 2, label: 'PLAN', sub: 'THINKS', out: -1 },
+    { a: -Math.PI / 2 + (2 * Math.PI / 3), label: 'ACT', sub: 'ACTS', out: 1 },
+    { a: -Math.PI / 2 + (4 * Math.PI / 3), label: 'FORGET', sub: 'LOSES IT', out: 1 },
   ];
   nodes.forEach((n, i) => {
     const np = snap(t, T.fig2 + .9 + i * .55, E8 * 1.1);
@@ -337,22 +342,23 @@ function drawFig2(g, t) {
     mono(g, 18); g.fillStyle = i === 2 ? C.stamp : C.ink;
     const tw = g.measureText(n.label).width;
     g.fillText(n.label, x - tw / 2, y + 6);
+    // sub caption pushed OUTWARD, away from the loop, so it never sits on an arrow
     mono(g, 12); g.fillStyle = C.inkDim;
     const sw = g.measureText(n.sub).width;
-    g.fillText(n.sub, x - sw / 2, y + 92);
+    g.fillText(n.sub, x - sw / 2, y + n.out * 92);
     g.restore();
   });
   // centre annotation
   const cp = snap(t, T.fig2 + 2.4, E8);
   if (cp > 0) {
-    mono(g, 15); g.fillStyle = C.inkDim;
-    const a = 'SEQUENCE REPEATS UNTIL CONTEXT ENDS';
+    mono(g, 14); g.fillStyle = C.inkDim;
+    const a = 'LOOPS UNTIL CONTEXT ENDS';
     const aw = g.measureText(a).width;
-    g.fillText(a, cx - aw / 2, cy + 6);
+    g.fillText(a, cx - aw / 2, cy - 6);
     mono(g, 13); g.fillStyle = C.stamp;
-    const b = 'DOES NOT REACH STEP NINE';
+    const b = 'NEVER REACHES STEP NINE';
     const bw = g.measureText(b).width;
-    g.fillText(b, cx - bw / 2, cy + 30);
+    g.fillText(b, cx - bw / 2, cy + 18);
   }
 
   mono(g, 22); g.fillStyle = C.ink;
