@@ -15,7 +15,7 @@ const C = { light:'#F4F0E8', dark:'#12100E', accent:'#D4573B', dim:'rgba(244,240
 
 // ── timed beats (seconds)
 const T = {
-  hook:0.0, setup:1.6, body1:4.4, body2:9.0, body3:14.0, payoff:19.5, cta:25.0
+  hook:0.0, setup:1.6, body1:4.2, body2:8.6, body3:13.4, payoff:18.6, cta:24.4
 };
 
 const A = {}, FONT = {};
@@ -56,14 +56,23 @@ const E = {
 };
 const clamp = v => Math.max(0,Math.min(1,v));
 const seg = (t,a,b) => clamp((t-a)/(b-a));
+const SAFE_L = 80, SAFE_R = 1000;   // inside the 900x1400 centre box
 function drawText(s, x, y, font, color, size, tracking, alpha){
   if (alpha <= 0) return;
-  g.save(); g.globalAlpha = alpha;
-  g.font = `${size}px "${font}"`;
-  g.letterSpacing = tracking + 'px';
+  // shrink until it fits — canvas never wraps for us
+  let sz = size;
+  g.save();
+  for(;;){
+    g.font = `${sz}px "${font}"`;
+    g.letterSpacing = (tracking * (sz/size)) + 'px';
+    if (g.measureText(s).width <= (SAFE_R - x) || sz <= 28) break;
+    sz -= 2;
+  }
+  g.globalAlpha = alpha;
   g.fillStyle = color;
   g.fillText(s, x, y);
   g.restore();
+  return sz;
 }
 function cover(im, dx,dy,dw,dh, alpha=1, comp='source-over'){
   if(!im) return;
@@ -103,7 +112,7 @@ window.render = function(time){
     g.beginPath(); g.rect(0, 980, W, 200); g.clip();
     drawText('IT PLANS.', 76, 1120 + (1-p)*60, FONT.display, C.light, 176, -8, p);
     g.restore();
-    drawText('FIG. 01 / 2026', 80, 1540, FONT.mono, C.dim, 30, 1.5, E.in(seg(t,0.5,0.9)));
+    drawText('FIG. 01 / 2026', 80, 1452, FONT.mono, C.dim, 30, 1.5, E.in(seg(t,0.5,0.9)));
   }
 
   // ============ BEAT 2 — SETUP (1.6-4.4): three lines, each replacing the last ============
@@ -128,15 +137,15 @@ window.render = function(time){
     });
     // the concrete slab, bottom-right, rotated — imperfection that stays put
     if (A.concrete){
-      g.save(); g.translate(706, 1592); g.rotate(-0.028); g.globalAlpha=0.78;
+      g.save(); g.translate(706, 1500); g.rotate(-0.028); g.globalAlpha=0.78;
       g.drawImage(A.concrete, -70, -70, 520, 380); g.restore();
     }
   }
 
   // ============ BEAT 3 — BODY 1: the plan card (4.4-9.0) ============
   if (t >= T.body1 && t < T.body2 + 0.4){
-    const pin = E.in(seg(t, 4.4, 4.9));
-    const pout = E.out(seg(t, 8.7, 9.2));
+    const pin = E.in(seg(t, 4.2, 4.7));
+    const pout = E.out(seg(t, 8.3, 8.8));
     const a = pin*(1-pout);
     if (a > 0){
       g.save(); g.globalAlpha = a;
@@ -184,8 +193,8 @@ window.render = function(time){
 
   // ============ BEAT 4 — BODY 2: $40 (9.0-14.0) ============
   if (t >= T.body2 && t < T.body3 + 0.4){
-    const pin = E.in(seg(t, 9.0, 9.5));
-    const pout = E.out(seg(t, 13.6, 14.2));
+    const pin = E.in(seg(t, 8.6, 9.1));
+    const pout = E.out(seg(t, 13.0, 13.6));
     const a = pin*(1-pout);
     g.save(); g.globalAlpha = a;
     const sc = 0.94 + 0.06*E.back(seg(t, 9.0, 9.6));
@@ -196,18 +205,18 @@ window.render = function(time){
     drawText('six hours. zero tasks completed.', 80, 1300, FONT.serif, C.accent, 54, -1, a*E.in(seg(t,9.5,10.0)));
 
     // real clock, mono, ticking in the corner
-    const hrs = Math.floor(seg(t, 9.0, 13.8) * 6);
+    const hrs = Math.floor(seg(t, 8.6, 13.2) * 6);
     drawText(String(hrs).padStart(2,'0') + ':00 / HOURS', 80, 220, FONT.mono, C.dim, 30, 1.5, a);
     g.restore();
   }
 
   // ============ BEAT 5 — BODY 3: a human (14.0-19.5) ============
   if (t >= T.body3 && t < T.payoff + 0.4){
-    const pin = E.in(seg(t, 14.0, 14.6));
-    const pout = E.out(seg(t, 19.1, 19.7));
+    const pin = E.in(seg(t, 13.4, 14.0));
+    const pout = E.out(seg(t, 18.2, 18.8));
     const a = pin*(1-pout);
     // the photo slides LEFT as the beat resolves — the carry
-    const slide = E.camera(seg(t, 17.6, 18.6));
+    const slide = E.camera(seg(t, 16.9, 17.9));
     if (A.hand){
       g.save();
       g.beginPath(); g.rect(0, 0, W*0.62, H); g.clip();
@@ -229,8 +238,8 @@ window.render = function(time){
 
   // ============ BEAT 6 — PAYOFF (19.5-25.0): three lines on the beat ============
   if (t >= T.payoff && t < T.cta + 0.4){
-    const a0 = E.in(seg(t, 19.5, 20.0));
-    const pout = E.out(seg(t, 24.6, 25.2));
+    const a0 = E.in(seg(t, 18.6, 19.1));
+    const pout = E.out(seg(t, 24.0, 24.6));
     const a = a0*(1-pout);
     drawText('WHAT ACTUALLY WORKS', 80, 340, FONT.mono, C.dim, 30, 1.5, a);
 
@@ -254,13 +263,32 @@ window.render = function(time){
     }
   }
 
+
+  // ============ BURST — three staccato hits inside 1.5s (the energy spike) ============
+  if (t >= 21.0 && t < 23.4){
+    const hits = [['IT.', 21.0], ['PLANS.', 21.42], ['IT FAILS.', 21.84]];
+    hits.forEach(([s, t0], i) => {
+      const pin = E.in(seg(t, t0, t0+0.10));
+      const pout = E.out(seg(t, t0+0.30, t0+0.42));
+      if (pin <= 0 || pout >= 1) return;
+      const a = pin*(1-pout);
+      g.save(); g.translate(0, 0);
+      drawText(s, 80, 1150, FONT.display, i===2?C.accent:C.light, 190, -8, a);
+      g.restore();
+      // a hard flash bar behind each hit — the visual 'beat'
+      g.save(); g.globalAlpha = a*0.5;
+      g.fillStyle = C.accent; g.fillRect(0, 1196, W, 8);
+      g.restore();
+    });
+  }
+
   // ============ BEAT 7 — LOOP / CTA (25.0-30.0) ============
   if (t >= T.cta){
-    const a = E.in(seg(t, 25.0, 25.6));
+    const a = E.in(seg(t, 24.4, 25.0));
     drawText('BORING SCOPE WINS.', 80, 1180, FONT.display, C.light, 96, -4, a);
-    drawText('fig. 01 / 2026', 80, 1500, FONT.mono, C.dim, 30, 1.5, a);
+    drawText('fig. 01 / 2026', 80, 1452, FONT.mono, C.dim, 30, 1.5, a);
     // on the last second, the type fades so the loop seam is invisible
-    const fade = E.out(seg(t, 29.2, 30.0));
+    const fade = E.out(seg(t, 29.0, 30.0));
     if (fade > 0){
       g.save(); g.globalAlpha = fade; g.fillStyle = 'rgba(10,9,8,0.56)';
       g.fillRect(0,1100,W,520);
