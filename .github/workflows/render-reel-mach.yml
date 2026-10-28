@@ -81,17 +81,43 @@ jobs:
           node render.mjs
           ls frames | wc -l
 
-      - name: Encode MP4
+      - name: Encode MP4 + mux audio (hard gate)
         env:
           FPS: ${{ inputs.fps }}
           TARGET: ${{ inputs.target }}
         run: |
+          set -euo pipefail
+          # 1. the picture, at a real bitrate (6 Mbps floor for type-heavy motion)
           ffmpeg -y -loglevel error -framerate "$FPS" -i frames/f%05d.png \
             -c:v libx264 -preset medium -crf 16 -maxrate 9M -bufsize 18M \
             -pix_fmt yuv420p -profile:v high -level 4.2 -movflags +faststart \
-            "$TARGET.mp4"
+            silent.mp4
+          # 2. the bed, built in this repo so it can never be forgotten
+          python3 -m pip install --quiet numpy 2>/dev/null || true
+          python3 "$TARGET/make_audio.py" --music "$TARGET/assets/music/"*.mp3 \
+            --dur "$(python3 -c "print(int(${{ inputs.duration }}))")" --out bed.wav
+          # 3. mux, video copied — never re-encode
+          ffmpeg -y -loglevel error -i silent.mp4 -i bed.wav \
+            -map 0:v -map 1:a -c:v copy -c:a aac -b:a 192k -shortest "$TARGET.mp4"
+          # 4. GATE: no audio stream => fail the run
+          ffprobe -v error -select_streams a -show_entries stream=codec_type -of csv=p=0 "$TARGET.mp4" \
+            | grep -q audio || { echo "AUDIO GATE FAIL: no audio stream"; exit 1; }
+          MEAN=$(ffmpeg -hide_banner -i "$TARGET.mp4" -af volumedetect -f null - 2>&1 \
+            | sed -n 's/.*mean_volume: \([-0-9.]*\) dB.*/\1/p')
+          echo "mean_volume=$MEAN dB"
+          python3 - <<PY
+          m=float("$MEAN" or -99)
+          if m < -20: raise SystemExit("AUDIO GATE FAIL: too quiet (%.1f dB)" % m)
+          print("audio gate PASS")
+          PY
+          # 5. BITRATE GATE
+          BR=$(ffprobe -v error -show_entries format=bit_rate -of csv=p=0 "$TARGET.mp4")
+          python3 - <<PY
+          br=int("$BR" or 0)/1e6
+          print("bitrate %.2f Mbps" % br)
+          if br < 6.0: raise SystemExit("BITRATE GATE FAIL: %.2f Mbps < 6 Mbps" % br)
+          PY
           ls -la "$TARGET.mp4"
-          ffprobe -v error -show_entries format=duration,bit_rate -show_entries stream=width,height -of compact "$TARGET.mp4"
 
       - name: Contact sheet
         env:
