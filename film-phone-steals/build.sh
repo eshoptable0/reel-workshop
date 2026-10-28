@@ -9,10 +9,10 @@ $PY -c "import numpy, scipy, soundfile, soxr" 2>/dev/null || $PY -m pip install 
 D=films/phone-steals
 $PY core/tts/tts.py $D/lines.json $D/voices
 $PY core/tts/asr_check.py $D/lines.json $D/voices || echo "asr mismatch tolerated"
-$PY $D/tools/words.py
+$PY $D/words.py
 $PY $D/music/score.py
 node core/render/events.mjs $D
 $PY $D/mix.py
-$PY $D/tools/subs.py && $PY core/render/srt.py $D/out/subs.json $D/phone-steals.srt
+$PY $D/subs.py && $PY core/render/srt.py $D/out/subs.json $D/phone-steals.srt
 node core/render/video.mjs $D --fps 60 --workers 3 --size 1080x1920 --out $D/out/video60.mp4
 sh core/render/mux.sh $D/out/video60.mp4 $D/mix.wav $D/phone-steals.mp4 60 0
