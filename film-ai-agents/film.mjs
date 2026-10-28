@@ -47,6 +47,16 @@ function font(g, wt, sz, fam = 'Archivo') {
   g.font = `${wt} ${sz}px ${fam}`;
   g.letterSpacing = sz >= 90 ? `${(-sz * .025).toFixed(1)}px` : '0px';
 }
+// shrink size until the string fits maxW — prevents right-edge clipping
+function fitFont(g, wt, sz, s, maxW, fam = 'Archivo') {
+  let cur = sz;
+  font(g, wt, cur, fam);
+  while (g.measureText(s).width > maxW && cur > 28) {
+    cur -= 2;
+    font(g, wt, cur, fam);
+  }
+  return cur;
+}
 function reveal(g, s, x, y, sz, p, q = 0) {
   if (p <= 0 || q >= 1) return;
   const w = g.measureText(s).width + sz * .14;
@@ -130,17 +140,20 @@ function drawPairs(g, t) {
 
   // CLAIM line — red, with strike-through sweeping across
   const pc = snap(t, tin, E8);
+  const MAXW = W - 2 * FM;
   font(g, 700, 46); g.fillStyle = C.hype;
   if (pc > 0) {
     reveal(g, 'CLAIM ' + P.n, fx(0), 720, 46, pc);
-    const cw = g.measureText(P.claim).width;
-    font(g, 800, 76); g.fillStyle = C.hype;
-    reveal(g, '"' + P.claim + '"', fx(0), 830, 76, snap(t, tin + .25, E8));
+    const qs = '"' + P.claim + '"';
+    const csz = fitFont(g, 800, 76, qs, MAXW);
+    g.fillStyle = C.hype;
+    const cw = g.measureText(qs).width;
+    reveal(g, qs, fx(0), 830, csz, snap(t, tin + .25, E8));
     // strike sweep
     const sk = snap(t, tin + 1.5, E8 * 1.4);
     if (sk > 0) {
       g.fillStyle = C.hot;
-      g.fillRect(fx(0) - 6, 792, (cw + 40) * sk, 12);
+      g.fillRect(fx(0) - 6, 830 - csz * .3, Math.min(cw + 24, MAXW + 12) * sk, 10);
     }
   }
 
@@ -154,8 +167,9 @@ function drawPairs(g, t) {
     g.fillRect(fx(0), cy, W - 2 * FM, 8);
     font(g, 800, 34); g.fillStyle = C.acid;
     g.fillText('REALITY', fx(0), cy + 62);
-    font(g, 900, 88); g.fillStyle = C.real;
-    reveal(g, P.real, fx(0), cy + 180, 88, snap(t, tin + 2.25, E8 * 1.1));
+    const rsz = fitFont(g, 900, 88, P.real, W - 2 * FM);
+    g.fillStyle = C.real;
+    reveal(g, P.real, fx(0), cy + 180, rsz, snap(t, tin + 2.25, E8 * 1.1));
     font(g, 400, 34); g.fillStyle = C.dim;
     reveal(g, P.sub, fx(0), cy + 250, 34, snap(t, tin + 2.7, E8));
     g.restore();
@@ -181,7 +195,8 @@ function drawWorks(g, t) {
     ['HUMAN CHECK', 1.1],
   ];
   font(g, 900, 130); g.fillStyle = C.acid;
-  reveal(g, 'WHAT WORKS.', fx(0), 620, 130, snap(t, T.work + .1, E8 * 1.2));
+  const wsz = fitFont(g, 900, 130, 'WHAT WORKS.', W - 2 * FM);
+  reveal(g, 'WHAT WORKS.', fx(0), 620, wsz, snap(t, T.work + .1, E8 * 1.2));
 
   rules.forEach(([txt, d], i) => {
     const p = snap(t, T.work + .9 + d, E8 * 1.1);
@@ -190,16 +205,18 @@ function drawWorks(g, t) {
     g.save(); g.globalAlpha = p;
     font(g, 800, 34); g.fillStyle = C.acid;
     g.fillText('0' + (i + 1), fx(0), y);
-    font(g, 700, 62); g.fillStyle = C.ink;
-    reveal(g, txt, fx(0) + 100, y, 62, p);
+    const rsz = fitFont(g, 700, 62, txt, W - 2 * FM - 100);
+    g.fillStyle = C.ink;
+    reveal(g, txt, fx(0) + 100, y, rsz, p);
     g.fillStyle = C.mute;
     g.fillRect(fx(0), y + 36, (W - 2 * FM) * p, 3);
     g.restore();
   });
 
   // bottom line
-  font(g, 600, 40); g.fillStyle = C.acid;
-  reveal(g, 'BORING SCOPE WINS.', fx(0), 1360, 40, snap(t, T.work + 3.4, E8));
+  const bsz = fitFont(g, 600, 40, 'BORING SCOPE WINS.', W - 2 * FM);
+  g.fillStyle = C.acid;
+  reveal(g, 'BORING SCOPE WINS.', fx(0), 1360, bsz, snap(t, T.work + 3.4, E8));
 }
 
 // ---------- CTA ----------
@@ -213,8 +230,9 @@ function drawCTA(g, t) {
   g.restore();
   if (p > .5) {
     g.save();
-    font(g, 900, 84); g.fillStyle = '#0B0B0D';
-    reveal(g, 'COMMENT "AGENT"', fx(0) + 34, 890, 84, p);
+    const csz = fitFont(g, 900, 84, 'COMMENT "AGENT"', W - 2 * FM - 68);
+    g.fillStyle = '#0B0B0D';
+    reveal(g, 'COMMENT "AGENT"', fx(0) + 34, 890, csz, p);
     g.restore();
   }
   font(g, 500, 32); g.fillStyle = C.ink;
