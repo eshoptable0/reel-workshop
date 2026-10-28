@@ -1,0 +1,62 @@
+name: render-ai-agents
+# "AI AGENTS: HYPE VS REALITY" — portrait 1080x1920, 60fps, drone bed + TTS + foley
+on:
+  workflow_dispatch:
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: System deps
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq ffmpeg fonts-liberation python3-venv python3-pip chromium-browser
+
+      - name: Clone lemo-opuscar
+        run: git clone --depth 1 https://github.com/lemomo-ai/lemo-opuscar.git
+
+      - name: Move film + fonts
+        run: |
+          cd lemo-opuscar
+          mkdir -p films/ai-agents/fonts films/ai-agents/music
+          cp -r "$GITHUB_WORKSPACE/film-ai-agents/"* films/ai-agents/
+          curl -sL -o films/ai-agents/fonts/Archivo-VF.ttf "https://github.com/google/fonts/raw/main/ofl/archivo/Archivo%5Bwdth%2Cwght%5D.ttf"
+          ls -la films/ai-agents/fonts/
+          cat films/ai-agents/build.sh | head -5
+
+      - name: Setup core + voice (with fallback)
+        run: |
+          cd lemo-opuscar
+          sh plugin/skills/lemo-opuscar/scripts/setup.sh deps 2>&1 | tail -4 || echo "setup failed, fallback"
+          [ -x .venv/bin/python ] || { python3 -m venv .venv && .venv/bin/pip install -q numpy scipy soundfile soxr pillow; }
+          sh plugin/skills/lemo-opuscar/scripts/setup.sh deps voice 2>&1 | tail -4 || echo "voice tier failed, continuing"
+          ls .venv/bin | head -4
+
+      - name: Build (full pipeline, gated)
+        run: |
+          cd lemo-opuscar
+          sh films/ai-agents/build.sh 2>&1 | tee /tmp/build.log
+
+      - name: Dump build log on failure
+        if: failure()
+        run: |
+          echo "===== BUILD LOG (last 120) ====="
+          tail -120 /tmp/build.log || true
+          echo "===== ERROR LINES ====="
+          grep -nE "Traceback|Error|error|No such|not found|AUDIO GATE|exit code" /tmp/build.log | grep -viE "snap|Get:|Selecting" | tail -40 || true
+
+      - name: Verify output
+        run: |
+          cd lemo-opuscar
+          ls -la films/ai-agents/ai-agents.mp4
+          ffprobe -v error -show_entries format=duration,bit_rate -show_entries stream=codec_type,codec_name,width,height,r_frame_rate,bit_rate -of compact films/ai-agents/ai-agents.mp4
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-agents-final
+          path: lemo-opuscar/films/ai-agents/ai-agents.mp4
+          if-no-files-found: error
