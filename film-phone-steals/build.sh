@@ -2,6 +2,7 @@
 # language: sh, target: lemo-opuscar engine — "YOUR PHONE STEALS 4 YEARS" (portrait 1080x1920, 60fps, full audio)
 # venv-tolerant python; runs from repo root: sh films/phone-steals/build.sh
 set -e
+set -o pipefail 2>/dev/null || true
 cd "$(dirname "$0")/../.."
 if [ -x .venv/bin/python ]; then PY=.venv/bin/python; else PY=python3; fi
 echo "using PY=$PY"
@@ -15,4 +16,9 @@ node core/render/events.mjs $D
 $PY $D/mix.py
 $PY $D/subs.py && $PY core/render/srt.py $D/out/subs.json $D/phone-steals.srt
 node core/render/video.mjs $D --fps 60 --workers 3 --size 1080x1920 --out $D/out/video60.mp4
-sh core/render/mux.sh $D/out/video60.mp4 $D/mix.wav $D/phone-steals.mp4 60 0
+if [ -f $D/mix.wav ]; then
+  sh core/render/mux.sh $D/out/video60.mp4 $D/mix.wav $D/phone-steals.mp4 60 0
+else
+  echo "no mix.wav - silent passthrough"
+  ffmpeg -y -i $D/out/video60.mp4 -c:v copy -an $D/phone-steals.mp4
+fi
