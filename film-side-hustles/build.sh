@@ -15,6 +15,7 @@ node core/render/events.mjs $D
 $PY $D/mix.py
 $PY $D/subs.py && $PY core/render/srt.py $D/out/subs.json $D/side-hustles.srt
 node core/render/video.mjs $D --fps 60 --workers 3 --size 1080x1920 --out $D/out/video60.mp4
+cp -f $D/out/mix.wav $D/mix.wav 2>/dev/null || echo "no mix in out/ either"
 if [ -f $D/mix.wav ]; then
   sh core/render/mux.sh $D/out/video60.mp4 $D/mix.wav $D/side-hustles.mp4 60 0
 else
