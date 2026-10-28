@@ -1,6 +1,6 @@
-"""Subtitle intervals for the phone-steals film -> out/subs.json"""
+"""Subtitle intervals -> out/subs.json. flattened: lives in film root."""
 import json, os
-D = os.path.dirname(os.path.abspath(__file__)) + '/..'
+D = os.path.dirname(os.path.abspath(__file__))
 LINES = json.load(open(f'{D}/lines.json'))
 dur = json.load(open(f'{D}/voices/dur.json'))
 cues = []
