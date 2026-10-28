@@ -1,6 +1,6 @@
-"""whisper word timings -> per-word appearance offsets (relative to line start)."""
+"""whisper word timings -> per-word appearance offsets (relative to line start). flattened: lives in film root."""
 import json, os, re
-D = os.path.dirname(os.path.abspath(__file__)) + '/..'
+D = os.path.dirname(os.path.abspath(__file__))
 lines = json.load(open(f'{D}/lines.json'))
 words = json.load(open(f'{D}/voices/words.json'))
 norm = lambda s: re.sub(r'[^a-z0-9]', '', s.lower())
