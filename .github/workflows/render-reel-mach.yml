@@ -89,7 +89,7 @@ jobs:
           set -euo pipefail
           # 1. the picture, at a real bitrate (6 Mbps floor for type-heavy motion)
           ffmpeg -y -loglevel error -framerate "$FPS" -i frames/f%05d.png \
-            -c:v libx264 -preset medium -crf 16 -maxrate 9M -bufsize 18M \
+            -c:v libx264 -preset slow -crf 10 -maxrate 14M -bufsize 28M -g 30 \
             -pix_fmt yuv420p -profile:v high -level 4.2 -movflags +faststart \
             silent.mp4
           # 2. the bed, built in this repo so it can never be forgotten
